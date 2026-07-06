@@ -7,7 +7,7 @@ name = "trellis-runtime"
 version = "0.6.2"
 description = "Trellis runtime scripts and hooks, installable globally via uvx"
 requires-python = ">=3.10"
-license = "MIT"
+license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 
 [project.scripts]
