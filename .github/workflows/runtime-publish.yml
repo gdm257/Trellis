@@ -23,21 +23,27 @@ jobs:
           cd trellis-runtime
           uv build
 
-      # Inject secrets from Infisical. Connection config comes from
-      # GitHub vars/secrets — nothing hardcoded.
+      # Inject secrets from Infisical (Universal Auth).
+      # All connection params come from GitHub vars/secrets — nothing hardcoded.
       # Required GitHub config:
-      #   Secret: INFISICAL_TOKEN        (Machine Identity token)
-      #   Var:    INFISICAL_PROJECT_ID   (Infisical project ID)
-      #   Var:    INFISICAL_ENV_SLUG     (e.g. "prod")
-      #   Var:    INFISICAL_DOMAIN       (optional, defaults to Infisical Cloud)
+      #   Secret: INFISICAL_CLIENT_SECRET  (Universal Auth client secret)
+      #   Var:    INFISICAL_IDENTITY_ID    (Identity ID)
+      #   Var:    INFISICAL_CLIENT_ID      (Universal Auth client ID)
+      #   Var:    INFISICAL_PROJECT_SLUG   (project slug)
+      #   Var:    INFISICAL_ENV_SLUG       (e.g. "prod")
+      #   Var:    INFISICAL_SECRET_PATH    (optional, default "/")
+      #   Var:    INFISICAL_DOMAIN         (optional, defaults to Infisical Cloud)
       # Infisical secret: PYPI_TOKEN → exported as env $PYPI_TOKEN
       - name: Inject Infisical secrets
-        if: ${{ secrets.INFISICAL_TOKEN != '' }}
+        if: ${{ secrets.INFISICAL_CLIENT_SECRET != '' }}
         uses: Infisical/secrets-action@v3.4.0
         with:
-          token: ${{ secrets.INFISICAL_TOKEN }}
-          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          client-id: ${{ vars.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
           env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
+          secret-path: ${{ vars.INFISICAL_SECRET_PATH }}
           domain: ${{ vars.INFISICAL_DOMAIN }}
 
       # Publish only when PYPI_TOKEN secret is configured.
