@@ -75,3 +75,15 @@ See [hook-reference.md](.trellis/tasks/07-06-pypi-global-runtime/hook-reference.
 ## Custom package name
 
 Edit `name` in `pyproject.toml`. The sync script never overwrites it.
+
+## Versioning
+
+Package version **tracks upstream Trellis version exactly** — never exceeds it.
+
+| Scenario | Version |
+|---|---|
+| Initial release for Trellis 0.6.5 | `0.6.5` |
+| Package-only fix (license, metadata, CI) | `0.6.5.post1`, `0.6.5.post2`, ... |
+| Upstream bumps to 0.6.6 | `0.6.6` (reset post counter) |
+
+PEP 440 post-release suffix (`.postN`) ensures package iterations sort *after* the base version but *before* the next upstream release.
