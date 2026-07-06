@@ -1,0 +1,32 @@
+name: runtime-publish
+
+on:
+  push:
+    tags:
+      - "runtime-v*"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v3
+
+      # Always build — validates the package is constructible.
+      - run: |
+          cd trellis-runtime
+          uv build
+
+      # Publish only when PYPI_TOKEN secret is configured.
+      # Without it this workflow acts as a build-only gate.
+      - name: Publish to PyPI
+        if: ${{ secrets.PYPI_TOKEN != '' }}
+        run: |
+          cd trellis-runtime
+          uv publish --token ${{ secrets.PYPI_TOKEN }}

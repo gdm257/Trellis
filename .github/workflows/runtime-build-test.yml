@@ -1,0 +1,47 @@
+name: runtime-build-test
+
+on:
+  push:
+    paths:
+      - "trellis-runtime/**"
+      - "packages/cli/src/templates/trellis/scripts/**"
+      - "packages/cli/src/templates/shared-hooks/**"
+  pull_request:
+    paths:
+      - "trellis-runtime/**"
+      - "packages/cli/src/templates/trellis/scripts/**"
+      - "packages/cli/src/templates/shared-hooks/**"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Verify upstream sync (byte-identical)
+        run: |
+          cd trellis-runtime
+          ./scripts/sync_upstream.sh --check
+
+      - name: Build package
+        run: |
+          cd trellis-runtime
+          uv build
+
+      - name: Smoke test — trellis-task
+        run: |
+          cd trellis-runtime
+          uv run trellis-task --help
+
+      - name: Smoke test — hook entry points
+        run: |
+          cd trellis-runtime
+          uv run trellis-hook-inject-workflow-state --help
+          uv run trellis-hook-session-start --help
+          uv run trellis-get-context --help

@@ -187,3 +187,8 @@ tmp/
 tmp1/
 .playwright-mcp
 .gitnexus
+
+# trellis-runtime Python package build artifacts
+trellis-runtime/dist/
+trellis-runtime/.venv/
+trellis-runtime/uv.lock
