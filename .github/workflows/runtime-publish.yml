@@ -9,6 +9,10 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -23,33 +27,13 @@ jobs:
           cd trellis-runtime
           uv build
 
-      # Inject secrets from Infisical (Universal Auth).
-      # All connection params come from GitHub vars/secrets — nothing hardcoded.
-      # Required GitHub config:
-      #   Secret: INFISICAL_CLIENT_SECRET  (Universal Auth client secret)
-      #   Var:    INFISICAL_IDENTITY_ID    (Identity ID)
-      #   Var:    INFISICAL_CLIENT_ID      (Universal Auth client ID)
-      #   Var:    INFISICAL_PROJECT_SLUG   (project slug)
-      #   Var:    INFISICAL_ENV_SLUG       (e.g. "prod")
-      #   Var:    INFISICAL_SECRET_PATH    (optional, default "/")
-      #   Var:    INFISICAL_DOMAIN         (optional, defaults to Infisical Cloud)
-      # Infisical secret: PYPI_TOKEN → exported as env $PYPI_TOKEN
-      - name: Inject Infisical secrets
-        if: ${{ secrets.INFISICAL_CLIENT_SECRET != '' }}
-        uses: Infisical/secrets-action@v3.4.0
-        with:
-          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
-          client-id: ${{ vars.INFISICAL_CLIENT_ID }}
-          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
-          env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
-          secret-path: ${{ vars.INFISICAL_SECRET_PATH }}
-          domain: ${{ vars.INFISICAL_DOMAIN }}
-
-      # Publish only when PYPI_TOKEN secret is configured.
-      # Without it this workflow acts as a build-only gate.
+      # PyPI Trusted Publishing (OIDC): no token, no Infisical.
+      # PyPI 侧需注册 trusted publisher:
+      #   PyPI Project → Publishing → Add Publisher
+      #     Owner/Repository: <this repo>
+      #     Workflow filename: runtime-publish.yml
+      #     Environment name:  pypi  (必须与本文件的 environment 一致)
       - name: Publish to PyPI
-        if: ${{ env.PYPI_TOKEN != '' }}
         run: |
           cd trellis-runtime
-          uv publish --token "$PYPI_TOKEN"
+          uv publish
