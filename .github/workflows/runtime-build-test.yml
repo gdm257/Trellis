@@ -27,7 +27,7 @@ jobs:
       - name: Verify upstream sync (byte-identical)
         run: |
           cd trellis-runtime
-          ./scripts/sync_upstream.sh --check
+          bash scripts/sync_upstream.sh --check
 
       - name: Build package
         run: |
