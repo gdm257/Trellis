@@ -20,7 +20,7 @@ PKG_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SRC_ROOT="${PKG_ROOT}/src"
 
 # Default: assume upstream templates are in the same repo (fork checkout)
-UPSTREAM_REPO="${UPSTREAM_REPO:-$(cd "$PKG_ROOT/../.." && pwd)}"
+UPSTREAM_REPO="${UPSTREAM_REPO:-$(cd "$PKG_ROOT/.." && pwd)}"
 UPSTREAM_TEMPLATES="$UPSTREAM_REPO/packages/cli/src/templates"
 
 DRY_RUN=false
