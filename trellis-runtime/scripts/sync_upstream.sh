@@ -5,9 +5,10 @@
 #   ../../packages/cli/src/templates/  (relative to this file)
 #
 # Sources (read-only, never modified):
-#   trellis/scripts/common/   → src/common/
-#   shared-hooks/*.py          → src/trellis_runtime/upstream/hooks/  (hyphen→underscore)
-#   trellis/scripts/*.py       → src/trellis_runtime/upstream/entry/  (skip __init__.py)
+#   trellis/scripts/common/    → src/common/
+#   shared-hooks/*.py           → src/trellis_runtime/upstream/hooks/  (hyphen→underscore)
+#   trellis/scripts/*.py        → src/trellis_runtime/upstream/entry/  (skip __init__.py)
+#   <agent>/hooks/*.py          → src/trellis_runtime/platform_hooks/<agent>/  (hyphen→underscore)
 #
 # Usage:
 #   ./scripts/sync_upstream.sh              # sync
@@ -81,6 +82,27 @@ for f in "$ENTRY_SRC"/*.py; do
   else
     cp "$f" "$ENTRY_DST/$base"
   fi
+done
+
+# 4. per-agent hooks (codex, copilot, … — any platform with hooks/*.py)
+PLATFORM_HOOKS_DST="$SRC_ROOT/trellis_runtime/platform_hooks"
+for platform_dir in "$UPSTREAM_TEMPLATES"/*/hooks; do
+  [[ -d "$platform_dir" ]] || continue
+  platform="$(basename "$(dirname "$platform_dir")")"
+  # Skip non-agent template dirs
+  [[ "$platform" == "shared-hooks" || "$platform" == "trellis" ]] && continue
+  platform_dst="$PLATFORM_HOOKS_DST/$platform"
+  mkdir -p "$platform_dst"
+  for f in "$platform_dir"/*.py; do
+    [[ -f "$f" ]] || continue
+    base="$(basename "$f")"
+    mod="$(to_module_name "$base")"
+    if $DRY_RUN; then
+      diff -q "$f" "$platform_dst/$mod" >/dev/null 2>&1 || { echo "DRIFT: $platform/$mod"; DRIFT=1; }
+    else
+      cp "$f" "$platform_dst/$mod"
+    fi
+  done
 done
 
 if $DRY_RUN; then

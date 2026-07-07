@@ -13,9 +13,11 @@ license-files = ["LICENSE"]
 [project.scripts]
 # Hooks (uvx callable from agent hook configs)
 trellis-hook-inject-workflow-state = "trellis_runtime.upstream.hooks.inject_workflow_state:main"
-trellis-hook-session-start = "trellis_runtime.upstream.hooks.session_start:main"
+trellis-hook-session-start = "trellis_runtime.wrappers.session_start:main"
 trellis-hook-inject-subagent-context = "trellis_runtime.upstream.hooks.inject_subagent_context:main"
 trellis-hook-inject-shell-session-context = "trellis_runtime.upstream.hooks.inject_shell_session_context:main"
+trellis-hook-codex-session-start = "trellis_runtime.platform_hooks.codex.session_start:main"
+trellis-hook-copilot-session-start = "trellis_runtime.platform_hooks.copilot.session_start:main"
 # CLI entry points
 trellis-task = "trellis_runtime.upstream.entry.task:main"
 trellis-get-context = "trellis_runtime.upstream.entry.get_context:main"
