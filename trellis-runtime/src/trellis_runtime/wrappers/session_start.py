@@ -18,6 +18,32 @@ import io
 import json
 import os
 import sys
+from pathlib import Path
+
+
+def _project_dir(hook_input: dict) -> Path:
+    """Resolve the project directory without importing project-local code."""
+    for env_name in (
+        "CLAUDE_PROJECT_DIR",
+        "QODER_PROJECT_DIR",
+        "CODEBUDDY_PROJECT_DIR",
+        "FACTORY_PROJECT_DIR",
+        "CURSOR_PROJECT_DIR",
+        "GEMINI_PROJECT_DIR",
+        "KIRO_PROJECT_DIR",
+        "COPILOT_PROJECT_DIR",
+    ):
+        value = os.environ.get(env_name)
+        if value:
+            return Path(value).resolve()
+
+    cwd = hook_input.get("cwd") or os.getcwd()
+    return Path(cwd).resolve()
+
+
+def _is_trellis_project(project_dir: Path) -> bool:
+    """Return whether the project has opted into Trellis hooks."""
+    return (project_dir / ".trellis").is_dir()
 
 
 def _detect_target(hook_input: dict) -> str:
@@ -46,6 +72,11 @@ def main() -> None:
             hook_input = {}
     except (json.JSONDecodeError, ValueError):
         hook_input = {}
+
+    # Hooks are installed globally, so non-Trellis repositories must behave as
+    # if no hook were installed. Check before importing project-local helpers.
+    if not _is_trellis_project(_project_dir(hook_input)):
+        return
 
     target = _detect_target(hook_input)
 
