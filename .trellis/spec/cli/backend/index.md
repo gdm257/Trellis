@@ -16,6 +16,7 @@ This directory contains guidelines for backend development. Fill in each file wi
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Module organization, file layout, design decisions | Done |
 | [Script Conventions](./script-conventions.md) | Python script standards for .trellis/scripts/ | Done |
+| [`.trellis` Dependency Audit Contract](./trellis-dependencies.md) | Current dependencies, necessity, and missing-file behavior across skills, commands, agents, scripts, hooks, and workflow state | Done |
 | [Error Handling](./error-handling.md) | Error types, handling strategies | Done |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Done |
 | [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | Done |
@@ -43,6 +44,7 @@ Before writing backend code, read the relevant guidelines based on your task:
 - Adding a platform → [platform-integration.md](./platform-integration.md)
 - Modifying `init.ts` flow (new triggers, dispatch branches, bootstrap/joiner) → [platform-integration.md "Bootstrap & Joiner Task Auto-Generation"](./platform-integration.md) — two-point wiring + `.developer` signal
 - Script work → [script-conventions.md](./script-conventions.md)
+- Auditing generated `.trellis` references or changing missing-file behavior → [trellis-dependencies.md](./trellis-dependencies.md)
 - Migration system → [migrations.md](./migrations.md)
 - Cutting a release / cross-branch submodule coordination / manifest continuity / npm publishing → [release-process.md](./release-process.md)
 - Editing `packages/core/**`, moving reusable CLI logic into core, or changing CLI imports from `@mindfoldhq/trellis-core` → [trellis-core-sdk.md](./trellis-core-sdk.md)
