@@ -17,6 +17,8 @@ After publishing to PyPI:
 
 ```bash
 uvx --from trellis-runtime trellis-task --help
+# Or via the default CLI dispatcher:
+uvx trellis-runtime task --help
 ```
 
 ## Package layout
@@ -33,6 +35,7 @@ trellis-runtime/
 │   │   ├── config.py
 │   │   └── ...
 │   └── trellis_runtime/
+│       ├── cli.py                  # default CLI dispatcher (uvx trellis-runtime <name>)
 │       └── upstream/
 │           ├── hooks/              # 4 hook scripts (hyphen→underscore rename)
 │           │   ├── inject_workflow_state.py
@@ -67,6 +70,8 @@ trellis-runtime/
 | `trellis-hook-inject-shell-session-context` | `inject-shell-session-context.py` |
 
 CLI entry points: `trellis-task`, `trellis-get-context`, `trellis-add-session`, `trellis-get-developer`, `trellis-init-developer`.
+
+The default `trellis-runtime` command dispatches to them by name, e.g. `uvx trellis-runtime task list` ≡ `uvx --from trellis-runtime trellis-task list`.
 
 ## Per-agent hook config
 

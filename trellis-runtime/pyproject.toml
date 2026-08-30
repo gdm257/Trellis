@@ -4,13 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "trellis-runtime"
-version = "0.6.5.post2"
+version = "0.6.5.post3"
 description = "Trellis runtime scripts and hooks, installable globally via uvx"
 requires-python = ">=3.10"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 
 [project.scripts]
+# Default CLI dispatcher (uvx trellis-runtime <name> ...)
+trellis-runtime = "trellis_runtime.cli:main"
 # Hooks (uvx callable from agent hook configs)
 trellis-hook-inject-workflow-state = "trellis_runtime.upstream.hooks.inject_workflow_state:main"
 trellis-hook-session-start = "trellis_runtime.wrappers.session_start:main"
