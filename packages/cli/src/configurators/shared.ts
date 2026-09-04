@@ -297,7 +297,49 @@ export function wrapWithCommandFrontmatter(
       `Missing command description for "${baseName}". Add it to COMMAND_DESCRIPTIONS in shared.ts.`,
     );
   }
-  return `---\nname: ${name}\ndescription: ${description}\n---\n\n${content}`;
+  // JSON.stringify produces a double-quoted YAML scalar, which is safe even
+  // when the description contains a colon (an unquoted plain scalar cannot
+  // contain ": " — some parsers reject it outright, e.g. Trae CLI's SlashCommand
+  // schema; others silently truncate at the second colon).
+  return `---\nname: ${name}\ndescription: ${JSON.stringify(
+    description,
+  )}\n---\n\n${content}`;
+}
+
+/**
+ * Argument-hint values for commands that accept positional args.
+ * Used by OMP platform's YAML frontmatter.
+ */
+const COMMAND_ARGUMENT_HINTS: Record<string, string> = {
+  "finish-work": "[task-name]",
+};
+
+/**
+ * Wrap resolved command content with OMP-style YAML frontmatter.
+ * OMP uses `description` (required) + optional `argument-hint`.
+ * The leading `# Title` heading from the source template is stripped
+ * because OMP's frontmatter replaces its role.
+ */
+export function wrapWithOmpFrontmatter(name: string, content: string): string {
+  const baseName = name.replace(/^trellis-/, "");
+  const description = COMMAND_DESCRIPTIONS[baseName];
+  if (!description) {
+    throw new Error(
+      `Missing command description for "${baseName}". Add it to COMMAND_DESCRIPTIONS in shared.ts.`,
+    );
+  }
+  // Strip leading H1 + blank line from template body
+  const body = content.replace(/^# [^\n]+\n\n/, "");
+  const hint = COMMAND_ARGUMENT_HINTS[baseName];
+  // JSON.stringify produces a double-quoted YAML scalar, safe even when the
+  // description contains a colon (see wrapWithCommandFrontmatter).
+  const quotedDescription = JSON.stringify(description);
+  const frontmatter = hint
+    ? `---\ndescription: ${quotedDescription}\nargument-hint: ${JSON.stringify(
+        hint,
+      )}\n---`
+    : `---\ndescription: ${quotedDescription}\n---`;
+  return `${frontmatter}\n\n${body}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +354,10 @@ import {
   getCommandTemplates,
   getSkillTemplates,
 } from "../templates/common/index.js";
+import {
+  getSharedHookScriptsForPlatform,
+  type SharedHookPlatform,
+} from "../templates/shared-hooks/index.js";
 
 /** A resolved template ready to be written to disk. */
 export interface ResolvedTemplate {
@@ -335,9 +381,10 @@ export interface ResolvedSkillFile {
  * auto-injects the workflow overview, so a user-facing `start` would be
  * redundant.
  *
- * `agentCapable && !hasHooks` platforms (Codex, ZCode, OpenCode, Reasonix)
+ * `agentCapable && !hasHooks` platforms (Codex, ZCode, OpenCode, Reasonix, Grok)
  * have no such hook (or use an out-of-band plugin), so they need the
  * user-invocable `trellis-start` skill / `start.md` command as fallback.
+ * Snow is class-1 (`hasHooks: true`) with auto inject + project agents.
  * Agent-less platforms (Kilo, Antigravity, Devin) also keep `start` since
  * they rely entirely on user-triggered workflows.
  */
@@ -458,7 +505,7 @@ export function resolveBundledSkills(
 }
 
 // ---------------------------------------------------------------------------
-// Shared configurator write helpers
+// Shared collectors
 // ---------------------------------------------------------------------------
 
 /** Collect skill files under a target root for update hash tracking. */
@@ -477,60 +524,82 @@ export function collectSkillTemplates(
   return files;
 }
 
-/** Write skill directories from resolved templates and bundled skill files. */
-export async function writeSkills(
-  skillsRoot: string,
-  skills: { name: string; content: string }[],
-  bundledSkills: readonly ResolvedSkillFile[] = [],
-): Promise<void> {
-  ensureDir(skillsRoot);
-  for (const skill of skills) {
-    const skillDir = path.join(skillsRoot, skill.name);
-    ensureDir(skillDir);
-    await writeFile(
-      path.join(skillDir, "SKILL.md"),
-      replacePythonCommandLiterals(skill.content),
-    );
+// ---------------------------------------------------------------------------
+// Template maps — a platform's file set, described once
+//
+// `collect<Platform>Templates()` returns `Map<relPath, content>`: the single
+// description of what a platform installs. `trellis update` diffs that map and
+// `configure` writes it through `writeTemplateMap`. Nothing else enumerates a
+// platform's files — two descriptions that disagree is how `trellis update`
+// silently stops managing a file (manifests/0.5.7.json).
+// ---------------------------------------------------------------------------
+
+/** Apply the python3 → python rewrite to every entry of a template map. */
+export function renderTemplateMap(
+  files: Map<string, string>,
+): Map<string, string> {
+  const rendered = new Map<string, string>();
+  for (const [relPath, content] of files) {
+    rendered.set(relPath, replacePythonCommandLiterals(content));
   }
-  for (const skillFile of bundledSkills) {
-    const targetPath = path.join(skillsRoot, skillFile.relativePath);
-    ensureDir(path.dirname(targetPath));
-    await writeFile(
-      targetPath,
-      replacePythonCommandLiterals(skillFile.content),
-    );
+  return rendered;
+}
+
+/**
+ * Write a collected template map into `cwd`.
+ *
+ * Renders through {@link renderTemplateMap} first — the same rewrite
+ * `collectPlatformTemplates` applies on the update path — so a file's
+ * init-time bytes and its update-time expected bytes cannot drift.
+ */
+export async function writeTemplateMap(
+  cwd: string,
+  files: Map<string, string>,
+): Promise<void> {
+  for (const [relPath, content] of renderTemplateMap(files)) {
+    const absPath = path.join(cwd, ...relPath.split("/"));
+    ensureDir(path.dirname(absPath));
+    await writeFile(absPath, content);
   }
 }
 
-/** Write agent/droid definition files */
-export async function writeAgents(
-  agentsDir: string,
-  agents: { name: string; content: string }[],
-  ext = ".md",
-): Promise<void> {
-  ensureDir(agentsDir);
-  for (const agent of agents) {
-    await writeFile(
-      path.join(agentsDir, `${agent.name}${ext}`),
-      replacePythonCommandLiterals(agent.content),
-    );
-  }
-}
-
-/** Write the shared hook scripts that `platform` actually registers. */
-export async function writeSharedHooks(
-  hooksDir: string,
-  platform: import("../templates/shared-hooks/index.js").SharedHookPlatform,
-): Promise<void> {
-  const { getSharedHookScriptsForPlatform } =
-    await import("../templates/shared-hooks/index.js");
-  ensureDir(hooksDir);
+/**
+ * Collect the shared hook scripts that `platform` actually registers, keyed
+ * under `hooksPath`. Driven by SHARED_HOOKS_BY_PLATFORM so a platform's hook
+ * set is never restated per configurator.
+ */
+export function collectSharedHooks(
+  hooksPath: string,
+  platform: SharedHookPlatform,
+): Map<string, string> {
+  const files = new Map<string, string>();
   for (const hook of getSharedHookScriptsForPlatform(platform)) {
-    await writeFile(
-      path.join(hooksDir, hook.name),
-      replacePythonCommandLiterals(hook.content),
-    );
+    files.set(`${hooksPath}/${hook.name}`, hook.content);
   }
+  return files;
+}
+
+/** Collect commands + skills for "both" platforms (a commands directory plus
+ *  a skills root). */
+export function collectBothTemplates(
+  ctx: TemplateContext,
+  cmdPath: (name: string) => string,
+  skillRoot: string,
+  wrapCmd?: (filePath: string, content: string) => string,
+): Map<string, string> {
+  const files = new Map<string, string>();
+  for (const cmd of resolveCommands(ctx)) {
+    const filePath = cmdPath(cmd.name);
+    files.set(filePath, wrapCmd ? wrapCmd(filePath, cmd.content) : cmd.content);
+  }
+  for (const [filePath, content] of collectSkillTemplates(
+    skillRoot,
+    resolveSkills(ctx),
+    resolveBundledSkills(ctx),
+  )) {
+    files.set(filePath, content);
+  }
+  return files;
 }
 
 // ---------------------------------------------------------------------------
