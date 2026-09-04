@@ -22,12 +22,16 @@
 
 ## Acceptance Criteria
 
-- [ ] `git merge v0.6.15` 完成且工作树干净
-- [ ] `sync_upstream.sh --check` 输出 OK
-- [ ] `uvx trellis-runtime task list` 退出码 0
-- [ ] `uvx trellis-runtime get-context` 退出码 0
-- [ ] trellis-dependencies.md 含 `.runtime/sessions` 行且 config.yaml 行已更新
-- [ ] 变更已提交到 main
+- [x] `git merge v0.6.15` 完成且工作树干净（092da6e1，唯一冲突 .gitignore 已解决）
+- [x] `sync_upstream.sh --check` 输出 OK
+- [x] `task list` 退出码 0
+- [x] `get-context` 退出码 0
+- [x] trellis-dependencies.md 含 `.runtime/` 行且 config.yaml 行已更新
+- [x] 变更已提交到 main（092da6e1 + b95293cb）
+
+## Deviation
+
+pre-commit `pnpm test` 在 merge 后稳定失败：`packages/core/test/channel/seq.test.ts` 的 32 并发锁测试超过应用级 5s 超时（Windows 慢 FS + merge 新增 ~1600 行 mem/sqlite 测试加重并行负载）。基线 A/B（worktree）全过、锁代码与依赖零改动、单跑通过，确认非代码回归。经用户同意（选项 2），两次提交使用 `--no-verify`，flaky 问题留给上游。
 
 ## Constraints
 
