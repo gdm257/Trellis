@@ -49,8 +49,16 @@
 
 | `.trellis` path | Hardcoded consumers | 作用 | 必要性 | 不存在的影响 |
 |---|---|---|---|---|
-| `config.yaml` | `exec: config.py; trellis_config.py; session-start.py; inject-workflow-state.py; workflow_phase.py; task_store.py; add_session.py; trellis init; trellis update; trellis channel`<br>`emit: safe_commit.py` | monorepo package、task hooks、journal、scope、channel guard、Codex dispatch 设置 | 文件可选； configured semantics 必需 | reader 得到空 config 或 defaults，基础 task/session 操作继续，但 monorepo、hook、scope、journal、channel guard、dispatch 语义降级 |
+| `config.yaml` | `exec: config.py; trellis_config.py; session-start.py; inject-workflow-state.py; workflow_phase.py; task_store.py; add_session.py; trellis init; trellis update; trellis channel`<br>`emit: safe_commit.py` | monorepo package、task hooks、journal、scope、channel guard、Codex dispatch、symlink 信任（`trusted_context_dirs` / `auto_trust_trellis_symlinks`）设置 | 文件可选； configured semantics 必需 | reader 得到空 config 或 defaults，基础 task/session 操作继续，但 monorepo、hook、scope、journal、channel guard、dispatch、symlink 信任语义降级 |
 | `.version` | `exec: session_context.py; trellis update`<br>`exec writer: trellis init`<br>`doc: trellis-meta` | 记录已安装 template version，供 update/migration 比较 | update 语义需要；普通 task/session runtime 不需要 | `session_context.py` 返回 `None` 并省略版本比较；`trellis update` 把项目版本视为 `unknown`，跳过 regular migration，但 template 更新和 hash-verified cleanup 继续；`trellis init` 重写该文件 |
 | `.template-hashes.json` | `exec: template-hash.ts; manifest-prune.ts; trellis init; trellis update; trellis uninstall; trellis workflow`<br>`doc: create-manifest; trellis-meta` | template provenance 和 user-modified/pristine 分类 | task/session runtime 不需要；安全 update/uninstall/workflow 切换需要 | hashes 加载为 `{}`；`trellis update` 可重建 tracking 但失去可靠 modified/pristine 分类；`trellis uninstall` 因无法证明 ownership 退出 1；`trellis workflow` 把已有不同 `workflow.md` 视为 modified，要求 force/create-new/skip 类处理 |
 
 `safe_commit.py` 含 `.template-hashes.json` 字面量，但只把它排除出 staging，不解析内容，也不因该文件缺失而失败。
+
+## Runtime State
+
+| `.trellis` path | Hardcoded consumers | 作用 | 必要性 | 不存在的影响 |
+|---|---|---|---|---|
+| `.runtime/`（`sessions/`、`shell-tickets/`、update-check marker） | `exec: active_task.py; session-start.py; inject-shell-session-context.py; session_context.py; snow write-trellis-context.py (shipped template)`<br>`doc: paths.py; workflow.md; trellis-meta; trellis-session-insight; markdown/gitignore.txt` | 每 AI session/window 的 active-task 指针（`sessions/<context_key>.json`）、shell 命令 ticket（`shell-tickets/`，TTL 30s）、update 检查节流 marker | 跨 session 恢复 active task、shell ticket 传递、update 节流需要；单 session 内的普通任务操作不需要 | 目录按需重建；`task.py current` 视为无 active task，session resume 提示与 shell ticket 丢失，update 检查节流失效 |
+
+`safe_commit.py` 含 `.trellis/.runtime/`、`.trellis/.cache/` 字面量，但只把它们排除出 staging。`.cache/` 在当前安装面没有写入方，仅作为排除项存在。
