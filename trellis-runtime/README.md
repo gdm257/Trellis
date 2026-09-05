@@ -71,7 +71,7 @@ trellis-runtime/
 
 CLI entry points: `trellis-task`, `trellis-get-context`, `trellis-add-session`, `trellis-get-developer`, `trellis-init-developer`.
 
-The default `trellis-runtime` command dispatches to them by name, e.g. `uvx trellis-runtime task list` ≡ `uvx --from trellis-runtime trellis-task list`.
+The default `trellis-runtime` command dispatches to them by name, e.g. `uvx trellis-runtime task list` ≡ `uvx --from trellis-runtime trellis-task list`. Hooks dispatch the same way: `uvx trellis-runtime inject-workflow-state` ≡ `uvx --from trellis-runtime trellis-hook-inject-workflow-state`. All hooks are dispatchable — `inject-workflow-state`, `session-start`, `inject-subagent-context`, `inject-shell-session-context`, `codex-session-start`, `copilot-session-start`, `statusline`, `write-trellis-context`.
 
 ## Per-agent hook config
 
